@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 from torch.autograd import Function
 import numpy as np
 import scipy.linalg
@@ -13,7 +12,7 @@ class MatrixSquareRoot(Function):
     """
     @staticmethod
     def forward(ctx, input):
-        m = input.numpy().astype(np.float_)
+        m = input.detach().numpy().astype(np.float_)
         sqrtm = torch.from_numpy(scipy.linalg.sqrtm(m).real).type_as(input)
         ctx.save_for_backward(sqrtm)
         return sqrtm
@@ -22,7 +21,7 @@ class MatrixSquareRoot(Function):
     def backward(ctx, grad_output):
         grad_input = None
         if ctx.needs_input_grad[0]:
-            sqrtm, = ctx.saved_variables
+            sqrtm, = ctx.saved_tensors
             sqrtm = sqrtm.data.numpy().astype(np.float_)
             gm = grad_output.data.numpy().astype(np.float_)
 
@@ -33,7 +32,7 @@ class MatrixSquareRoot(Function):
             grad_sqrtm = scipy.linalg.solve_sylvester(sqrtm, sqrtm, gm)
 
             grad_input = torch.from_numpy(grad_sqrtm).type_as(grad_output.data)
-        return Variable(grad_input)
+        return grad_input
 
 
 sqrtm = MatrixSquareRoot.apply
@@ -43,9 +42,8 @@ def main():
     from torch.autograd import gradcheck
     k = torch.randn(20, 10).double()
     # Create a positive definite matrix
-    pd_mat = k.t().matmul(k)
-    pd_mat = Variable(pd_mat, requires_grad=True)
-    test = gradcheck(MatrixSquareRoot.apply, (pd_mat,))
+    pd_mat = (k.t().matmul(k)).requires_grad_()
+    test = gradcheck(sqrtm, (pd_mat,))
     print(test)
 
 

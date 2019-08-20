@@ -7,7 +7,7 @@ is not differentiable for matrices with zero eigenvalues.
 
 ## Dependency
 
-* [PyTorch](http://pytorch.org/)
+* [PyTorch](http://pytorch.org/) >= 1.0
 * [NumPy](http://www.numpy.org/)
 * [SciPy](https://www.scipy.org/)
 
@@ -15,12 +15,11 @@ is not differentiable for matrices with zero eigenvalues.
 
 ```python
 import torch
-from torch.autograd import Variable
 from sqrtm import sqrtm
 
 k = torch.randn(20, 10)
 # Create a (hopefully) positive definite matrix
-pd_mat = Variable(k.t().matmul(k), requires_grad=True)
+pd_mat = (k.t().matmul(k)).requires_grad_()
 sqrt_mat = sqrtm(pd_mat)
 sqrt_mat.sum().backward()
 ```
